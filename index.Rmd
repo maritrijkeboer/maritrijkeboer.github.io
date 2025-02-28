@@ -9,12 +9,7 @@ output:
 library(tidyverse)
 source("compmus.R")
 ```
-# Introduction
-I created both songs on StableAudio.com
-Links to an external site. after trying numerous AI generators. I tested almost every option on the Fairly Trained site, but only StableAudio.com
-Links to an external site. worked well for me. To make the songs, I used various keywords to create a chill guitar vibe. Both are instrumental since I find AI vocals too robotic and can't sing myself, so I left out vocals. For song one, I used keywords like Post-Rock, Euphoric, and Sentimental (125 BPM). The second song features a 3/4 beat with Bright, Happy, and Surf vibes. Overall, I'm happy with the results and how natural they sound. 
 
----
 # Visualisation
 
 ### track 1  
@@ -74,5 +69,10 @@ Links to an external site. worked well for me. To make the songs, I used various
   labs(x = "Time (s)", y = NULL, fill = NULL) +
   theme_classic() 
 ```
+# Introduction
+I created both songs on StableAudio.com
+Links to an external site. after trying numerous AI generators. I tested almost every option on the Fairly Trained site, but only StableAudio.com
+Links to an external site. worked well for me. To make the songs, I used various keywords to create a chill guitar vibe. Both are instrumental since I find AI vocals too robotic and can't sing myself, so I left out vocals. For song one, I used keywords like Post-Rock, Euphoric, and Sentimental (125 BPM). The second song features a 3/4 beat with Bright, Happy, and Surf vibes. Overall, I'm happy with the results and how natural they sound. 
 
+---
 
