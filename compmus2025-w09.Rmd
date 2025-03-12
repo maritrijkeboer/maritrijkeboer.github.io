@@ -1,0 +1,171 @@
+You can download the raw source code for these lecture notes [here](compmus2025-w09.Rmd).
+
+## Course Meeting Plan
+
+### Wednesday · 26 February · Lecture
+
+  - Demo: [The Eternal Jukebox](http://v90084.1blu.de/) (15 min)
+  - Portfolio critiques (15 min)
+  - Lecture: Self-similarity matrices (15 min)
+  - Lecture: MFCCs and Spotify's timbre feature (20 min)
+  - Breakout: Avril 14 (15 min)
+  - Discussion: Breakout findings (10 min)
+
+### Wednesday · 26 February · Lab
+
+  - Demo: Introduction to new compmus functions (15 mins)
+  - Breakout: Interpreting timbre features (or not) (20 mins)
+  - Discussion: Breakout findings (10 mins)
+  - Demo: Self-similarity matrices with compmus (10 mins)
+  - Breakout: Self-similarity matrices (20 mins)
+  - Jam session: Breakout findings (15 mins)
+
+## Software setup
+
+From now on, we will start working with low-level features of individual songs.
+With your TA, you need to work through these steps:
+
+1. Download the high-level features from Canvas (`compmus2025.csv`) and move the file to your porfolio project.
+2. Download the low-level features from Canvas, unzip it, and move the `features` folder to your portfolio project.
+3. Add `compmus2025.csv` and `features` to your `.gitignore` file, so that they do not end up on Github. In RStudio's Git tab, right click on them and choose Ignore. That will update a file called `.gitignore` automatically, and you should see the ignored file or folder disappear. Commit your changes to `.gitignore` and you are set for the course!
+4. Download `compmus.R` from Canvas and move the file to your portfolio project.
+
+This last file is a script with helper functions I have written to help you avoid the most challenging aspects of R coding for audio analysis.
+In order to use it, you need to load it along with `tidyverse`.
+Your portfolio file (`index.Rmd`) and any other work you do now need to start with these two lines:
+
+```{r setup, message = FALSE}
+library(tidyverse)
+source("compmus.R")
+```
+
+You should never need to change anything or even look at `compmus.R` unless you are interested.
+The code in the lab notes, however, is code that I encourage you to experiment with and change.
+
+## Breakout 2: Chromagrams and Cepstrograms
+
+The key functions from `compmus.R` that we will use this week are
+
+  - `compmus_chroma` to load chroma features for a track in our class corpus
+  - `compmus_mfccs` to load MFCCs for a track in our class corpus
+  - `compmus_normalise` to normalise audio features using common techniques, including:
+      - `manhattan`
+      - `euclidean`
+      - `chebyshev`
+  - `compmus_long_distance` to compare to series of audio features against each other using common distance metrics, including:
+      - `manhattan`
+      - `aitchison`
+      - `euclidean`
+      - `cosine`
+      - `angular`
+
+### Common Norm, Distance, and Summary Combinations
+
+For all of your work, it is important to experiment with different norms and distances.
+As we have discussed during lectures, there are no golden rules for what will work best, and you should focus on what *looks* good to you.
+Nonetheless, the following table gives the combinations that are most traditional and most likely to work well for you.
+
+| Domain                      | Normalisation | Distance  |
+| ----------------------------|---------------|-----------|
+| Non-negative (e.g., chroma) | Manhattan     | Manhattan |
+|                             |               | Aitchison |
+|                             | Euclidean     | cosine    |
+|                             |               | angular   |
+|                             | Chebyshev     | [none]    |
+| Full-range (e.g., timbre)   | identity      | Euclidean |
+|                             | Euclidean     | cosine    |
+|                             |               | angular   |
+
+
+### Example
+
+The following example from the class corpus highlights how to use these functions. 
+You can also use this code as a template: the lines you need to change to make your own chromagrams and cepstrograms are marked.
+
+**Do not try to make images like these interactive with `ggploty()`!**
+It will result in huge web pages that Github will complain about.
+
+#### Chromagram
+
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_chroma(norm = "identity") |>                 # Change the norm
+  ggplot(aes(x = time, y = pc, fill = value)) + 
+  geom_raster() +
+  scale_y_continuous(
+    breaks = 0:11,
+    minor_breaks = NULL,
+    labels = c(
+                "C", "C#|Db", "D", "D#|Eb",
+                "E", "F", "F#|Gb", "G",
+                "G#|Ab", "A", "A#|Bb", "B"
+              )
+  ) +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+#### Cepstrogram
+
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  ggplot(aes(x = time, y = mfcc, fill = value)) + 
+  geom_raster() +
+  scale_y_continuous(
+    breaks = 0:12,
+    minor_breaks = NULL,
+  ) +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = "Coefficient Number", fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### Instructions
+
+1. Try different combinations of norms, distances, and summary statistics. Which seem to give the clearest visualisation?
+  
+3. Once you are happy with your choices in steps 1 and 2, make chromagrams and cepstrograms for several other tracks and look for timbre components where there are clear changes. Listen to these tracks and follow along with the cepstrograms. Can you think of words to describe what is changing in the music when you see sharp changes in the cepstrogram?
+
+## Breakout 3: Self-Similarity Matrices
+
+The function `compmus_self_similarity` uses chroma and MFCC features from our class corpus to generate self-similarity matrics.
+
+#### Chroma-based self-similarity
+
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_chroma(norm = "identity") |>                 # Change the norm
+  compmus_self_similarity(
+    feature = pc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+#### Timbre-based self-similarity
+
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  compmus_self_similarity(
+    feature = mfcc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### Instructions
+
+1. Try different norms and distance metrics to see which ones is most useful for this track.
+2. Discuss whether chroma- or timbre-based self similarity gives a clearer structural picture for this track.
+3. Try several other tracks and listen to them while looking at your matrices. How can you explain the patterns you see?
