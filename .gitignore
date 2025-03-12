@@ -2,4 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+<<<<<<< HEAD
 features
+=======
+compmus2025.csv
+features/
+>>>>>>> refs/remotes/origin/main
