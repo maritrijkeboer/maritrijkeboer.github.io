@@ -9,15 +9,13 @@ output:
 library(tidyverse)
 source("compmus.R")
 ```
-<<<<<<< HEAD
 # Introduction
 I created both songs on StableAudio.com
 Links to an external site. after trying numerous AI generators. I tested almost every option on the Fairly Trained site, but only StableAudio.com
 Links to an external site. worked well for me. To make the songs, I used various keywords to create a chill guitar vibe. Both are instrumental since I find AI vocals too robotic and can't sing myself, so I left out vocals. For song one, I used keywords like Post-Rock, Euphoric, and Sentimental (125 BPM). The second song features a 3/4 beat with Bright, Happy, and Surf vibes. Overall, I'm happy with the results and how natural they sound. 
 =======
->>>>>>> refs/remotes/origin/main
 
-# Visualisation
+# Chromagram
 
 ### track 1  
 - **Approachability:** 0.493762344121933  
@@ -47,23 +45,6 @@ Links to an external site. worked well for me. To make the songs, I used various
   theme_classic() 
 ``` 
 
-<<<<<<< HEAD
-```{r}
-"features/marit-r-1.json" |>                           # Change the track
-  compmus_mfccs(norm = "identity") |>                  # Change the norm
-  ggplot(aes(x = time, y = mfcc, fill = value)) + 
-  geom_raster() +
-  scale_y_continuous(
-    breaks = 0:12,
-    minor_breaks = NULL,
-  ) +
-  scale_fill_viridis_c(guide = "none") +               # Change the colours?
-  labs(x = "Time (s)", y = "Coefficient Number", fill = NULL) +
-  theme_classic()                                      # Change the theme?
-```
-
-=======
->>>>>>> refs/remotes/origin/main
 ### track 2 
 - **Approachability:** 0.8854424357414246  
 - **Arousal:** 4.87969970703125  
@@ -72,7 +53,6 @@ Links to an external site. worked well for me. To make the songs, I used various
 - **Instrumentalness:** 0.349807471036911  
 - **Tempo:** 83  
 - **Valence:** 5.514646530151367
-
 
 
 ```{r}
@@ -93,8 +73,25 @@ Links to an external site. worked well for me. To make the songs, I used various
   labs(x = "Time (s)", y = NULL, fill = NULL) +
   theme_classic() 
 ```
-<<<<<<< HEAD
 
+# Cepstogram
+
+### track 1
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  ggplot(aes(x = time, y = mfcc, fill = value)) + 
+  geom_raster() +
+  scale_y_continuous(
+    breaks = 0:12,
+    minor_breaks = NULL,
+  ) +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = "Coefficient Number", fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### track 2
 ```{r}
 "features/marit-r-2.json" |>                           # Change the track
   compmus_mfccs(norm = "identity") |>                  # Change the norm
@@ -108,12 +105,67 @@ Links to an external site. worked well for me. To make the songs, I used various
   labs(x = "Time (s)", y = "Coefficient Number", fill = NULL) +
   theme_classic()                                      # Change the theme?
 ```
-=======
-# Introduction
-I created both songs on StableAudio.com
-Links to an external site. after trying numerous AI generators. I tested almost every option on the Fairly Trained site, but only StableAudio.com
-Links to an external site. worked well for me. To make the songs, I used various keywords to create a chill guitar vibe. Both are instrumental since I find AI vocals too robotic and can't sing myself, so I left out vocals. For song one, I used keywords like Post-Rock, Euphoric, and Sentimental (125 BPM). The second song features a 3/4 beat with Bright, Happy, and Surf vibes. Overall, I'm happy with the results and how natural they sound. 
 
----
+# Chroma-based self-similarity
 
->>>>>>> refs/remotes/origin/main
+### track 1
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_chroma(norm = "identity") |>                 # Change the norm
+  compmus_self_similarity(
+    feature = pc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### track 2
+```{r}
+"features/marit-r-2.json" |>                           # Change the track
+  compmus_chroma(norm = "identity") |>                 # Change the norm
+  compmus_self_similarity(
+    feature = pc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+# Timbre-based self-similarity
+
+### track 1
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  compmus_self_similarity(
+    feature = mfcc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### track 2
+```{r}
+"features/marit-r-2.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  compmus_self_similarity(
+    feature = mfcc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
