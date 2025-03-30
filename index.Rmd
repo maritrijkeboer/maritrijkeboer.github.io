@@ -1,30 +1,124 @@
 ---
-title: "Computational Musicology MR"
+title: "AI-Generated Songs: How Dynamic Are They?"
 author: Marit Rijkeboer
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
 ---
-```{r setup, message = FALSE}
+```{r, results = 'hide'}
 library(tidyverse)
-source("compmus.R")
+library(tidymodels)
+library(ggdendro)
+library(heatmaply)
+source("compmus (2).R")
+
+get_conf_mat <- function(fit) {
+  outcome <- .get_tune_outcome_names(fit)
+  fit |> 
+    collect_predictions() |> 
+    conf_mat(truth = outcome, estimate = .pred_class)
+}  
+
+get_pr <- function(fit) {
+  fit |> 
+    conf_mat_resampled() |> 
+    group_by(Prediction) |> mutate(precision = Freq / sum(Freq)) |> 
+    group_by(Truth) |> mutate(recall = Freq / sum(Freq)) |> 
+    ungroup() |> filter(Prediction == Truth) |> 
+    select(class = Prediction, precision, recall)
+}  
 ```
+
+
 # Introduction
-I created both songs on StableAudio.com
-Links to an external site. after trying numerous AI generators. I tested almost every option on the Fairly Trained site, but only StableAudio.com
-Links to an external site. worked well for me. To make the songs, I used various keywords to create a chill guitar vibe. Both are instrumental since I find AI vocals too robotic and can't sing myself, so I left out vocals. For song one, I used keywords like Post-Rock, Euphoric, and Sentimental (125 BPM). The second song features a 3/4 beat with Bright, Happy, and Surf vibes. Overall, I'm happy with the results and how natural they sound. 
-=======
 
-# Chromagram
+For this project, I created both songs using StableAudio.com, after experimenting with several AI music generators. While I tested nearly every option on the Fairly Trained site, StableAudio.com ultimately proved to be the most effective for my needs. To compose the tracks, I used a variety of keywords aimed at crafting a chill guitar vibe. Both songs are instrumental, as I find AI-generated vocals too robotic, and I also can't sing myself, so I chose to leave the vocals out. For Song 1, I used keywords such as Post-Rock, Euphoric, and Sentimental (125 BPM), while Song 2 features a 3/4 beat with Bright, Happy, and Surf vibes.
 
-### track 1  
-- **Approachability:** 0.493762344121933  
-- **Arousal:** 4.817852020263672  
-- **Danceability:** 0.1733139157295227  
-- **Engagingness:** 0.6132141947746277  
-- **Instrumentalness:** 0.5142947435379028  
-- **Tempo:** 86  
-- **Valence:** 4.824087142944336 
+As someone without a background in musicology or AI, my approach to this project may not be technically perfect, and my formatting could have been improved. I would have liked to spend more time refining the layout to ensure that all graphs and visual elements are clearly displayed. Nevertheless, the title of my portfolio centers around the dynamics of AI-generated tracks, and I aimed to explore this through various graphical analyses we learned about in the lectures.
+
+To begin, I analyzed the submissions from all the students, including both AI-generated and non-AI tracks, visualizing the distribution using a scatterplot that focuses on arousal and tempo. These aspects seemed the most interesting to me, especially as I sought to investigate the dynamic qualities of the tracks. I felt that arousal, tempo, and danceability were key factors to study in this context. Following this, I examined chromagrams to assess the note-to-frequency relationship within the tracks, followed by chordograms to explore the time-to-chord dynamics. Next, I analyzed the self-similarity matrix, where the tracks are compared with themselves in terms of chroma and timbre. Afterward, I looked into cepstrograms to study changes in the tracks, focusing on energy novelty and spectral novelty. Additionally, I explored tempograms, which track tempo changes in beats per minute (BPM) over time. There's also a heatmap that clusters all the tracks in the corpus, offering a comprehensive overview. Finally, a conclusion is drawn regarding the overall dynamics of the AI-generated tracks. 
+
+# Class Corpus
+
+### Analysis of the Tempo-Arousal Relationship in the Scatterplot
+The scatterplot reveals an interesting distribution of tempo and arousal across different tracks. The average tempo is around 100 BPM, with an average arousal level of 5. Most tracks cluster around this point, suggesting a balance between energy and pace. However, there are a few notable outliers: Some tracks exhibit a very low tempo (30 BPM) but still maintain a moderate arousal level of 3.5. This could indicate slow but emotionally engaging pieces.
+
+On the other end of the spectrum, there are tracks with a higher-than-average tempo, yet with a relatively low arousal of 3. These might be fast-paced but more controlled or less intense in emotional expression. Interestingly, the track with the highest arousal (7) did not stand out in terms of speed—it maintained an average tempo, suggesting that factors beyond just BPM contribute to a track’s perceived energy.
+
+Looking at my own compositions: Track 1 has a tempo of 86 BPM and an arousal of 4.8, both slightly below the dataset's average. Track 2 is quite similar, with a tempo of 83 BPM and an arousal of 4.9. Compared to the rest of the dataset, most tracks tend to have both a higher tempo and a higher arousal than mine, positioning my tracks in a slightly more controlled range. Overall, the scatterplot provides a clear visual of how different tracks balance tempo and energy, highlighting variations in musical intensity and pacing.
+
+### Scatterplot 1
+```{r}
+compmus2025 <- read_csv("compmus2025 (2).csv")
+compmus2025 |> ggplot(aes(x = tempo, y = arousal)) + geom_point() + geom_smooth()
+``` 
+
+### Analysis of Tempo, Arousal, and Danceability in the Scatterplot
+
+The scatterplot with the addition of danceability paints a similar picture to the first, with some interesting new trends. Overall, the relationship between arousal and danceability is quite clear: Most tracks with higher arousal also score high on danceability, indicating that energetic tracks tend to be more danceable. Similarly, tracks with lower arousal tend to have lower danceability, suggesting that less intense music may be less suitable for dancing or more ambient in nature.
+
+One particularly interesting outlier stands out: A track with an arousal of around 6, a tempo of around 110 BPM, but with very low danceability (less than 0.50). This suggests that while the track has a moderately high energy level and tempo, it might lack the rhythmic or structural elements needed to be considered highly danceable, perhaps due to complex rhythms or other features that make it less suited for dancing.
+
+As for my own tracks: Track 1 has an extremely low danceability score of 0.17, indicating that it’s likely not very rhythmically driven or groove-oriented. Track 2 has a higher danceability at 0.29, though still relatively low compared to others. Interestingly, I personally find Track 2 to be much more monotonous and less engaging than Track 1, yet the danceability score does not fully align with my perception of the tracks. This might suggest that the danceability metric isn’t always in line with subjective experiences of musical engagement—it could be influenced by factors like rhythm complexity or musical structure that I find less compelling, but which still contribute to a higher score.
+
+### Scatterplot 2
+```{r}
+compmus2025 |>                   # Start with the data
+  ggplot(                     # Set up the plot.
+    aes(
+      x = tempo,
+      y = arousal,
+      size = instrumentalness,
+      colour = danceability
+    )
+  ) +
+  geom_point() +              # Scatter plot.
+  geom_rug(linewidth = 0.1) + # Add 'fringes' to show data distribution.
+  geom_text(                  # Add text labels from above.
+    x = 86,
+    y = 4.817852020263672,
+    label = "track1",
+    size = 3,                 # Override size (not loudness here).
+    hjust = "left",           # Align left side of label with the point.
+    vjust = "center",         # Align vertical centre of label with the point.
+    angle = 30                # Rotate the text label
+  ) +
+  scale_x_continuous(         # Fine-tune the x axis.
+    limits = c(50, 200),
+    breaks = c(50, 100, 150, 200), # Specify grid lines
+    minor_breaks = NULL       # Remove 'minor' grid lines.
+  ) +
+  scale_y_continuous(         # Fine-tune the y axis in the same way.
+    limits = c(1, 9),
+    breaks = c(1, 5, 9),
+    minor_breaks = NULL
+  ) +
+  scale_colour_viridis_c() +  # Use the popular viridis colour palette.
+  scale_size_continuous(      # Fine-tune the sizes of each point.
+    trans = "exp",            # Use an exp transformation to emphasise loud..
+    guide = "none"            # Remove the legend for size.
+  ) +
+  theme_light() +             # Use a simpler theme.
+  labs(                       # Make the titles nice.
+    x = "Tempo",
+    y = "Arousal",
+    colour = "Danceability"
+  )
+```
+
+# Chromagrams
+
+### Analysis of the Chromagram for Track 1
+
+This graph is vibrant, indicating a high level of tonal diversity in the track. The note G appears only in the middle of the song, while F and D# are scarcely present. At the beginning, E, F#, A, and B dominate, suggesting that the song is likely in E major. The pattern is clear and consistent, giving the song a somewhat monotonous feel, which aligns with the listening experience.
+
+The chromagram of this track reveals a strong presence of the notes E, F#, A, and B, clearly indicating that the track is primarily in E major. The pattern across the chromagram is clear and consistent, with these notes dominating throughout, which reinforces the harmonic stability of the piece.
+
+The repetitive nature of the chromagram suggests that the track follows a relatively monotonous structure, as the same notes persist without much deviation. This consistent pattern aligns with the overall feel of the music—there are no significant changes in tonality or harmony, which contributes to a sense of predictability and uniformity.
+
+When listening to the track, this eentonigheid (monotony) is immediately noticeable, and the chromagram perfectly reflects this characteristic. The lack of harmonic variation creates a stable but somewhat predictable atmosphere, where the tension and release typical of more complex harmonic progressions are notably absent.
+
+### Chromagram Track 1
 
 ```{r}
 "features/marit-r-1.json" |>                           # Change the track
@@ -45,15 +139,11 @@ Links to an external site. worked well for me. To make the songs, I used various
   theme_classic() 
 ``` 
 
-### track 2 
-- **Approachability:** 0.8854424357414246  
-- **Arousal:** 4.87969970703125  
-- **Danceability:** 0.28600555658340454  
-- **Engagingness:** 0.5910114645957947  
-- **Instrumentalness:** 0.349807471036911  
-- **Tempo:** 83  
-- **Valence:** 5.514646530151367
+### Analysis of Chromagram Track 2 
 
+This chromagram reveals a rich harmonic landscape. Recurring patterns suggest a steady chord progression, while the dominance of E and B hints at a key centered around E major or E minor. The presence of multiple active notes indicates complex harmonies. Moments of lower activity suggest brief rests, creating contrast. Towards the end, increased intensity in higher pitches signals a climax or modulation, building momentum before the resolution. Through this visual representation, we glimpse not just the notes but the energy and movement that shape the music’s emotional flow. 
+
+### Chromagram track 2
 
 ```{r}
 "features/marit-r-2.json" |>                           # Change the track
@@ -74,9 +164,226 @@ Links to an external site. worked well for me. To make the songs, I used various
   theme_classic() 
 ```
 
+# Chordograms
+
+```{r}
+#      C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B
+major_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
+minor_chord <-
+  c(   1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
+seventh_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+
+major_key <-
+  c(6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88)
+minor_key <-
+  c(6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17)
+
+chord_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:7", circshift(seventh_chord, 6),
+    "Gb:maj", circshift(major_chord, 6),
+    "Bb:min", circshift(minor_chord, 10),
+    "Db:maj", circshift(major_chord, 1),
+    "F:min", circshift(minor_chord, 5),
+    "Ab:7", circshift(seventh_chord, 8),
+    "Ab:maj", circshift(major_chord, 8),
+    "C:min", circshift(minor_chord, 0),
+    "Eb:7", circshift(seventh_chord, 3),
+    "Eb:maj", circshift(major_chord, 3),
+    "G:min", circshift(minor_chord, 7),
+    "Bb:7", circshift(seventh_chord, 10),
+    "Bb:maj", circshift(major_chord, 10),
+    "D:min", circshift(minor_chord, 2),
+    "F:7", circshift(seventh_chord, 5),
+    "F:maj", circshift(major_chord, 5),
+    "A:min", circshift(minor_chord, 9),
+    "C:7", circshift(seventh_chord, 0),
+    "C:maj", circshift(major_chord, 0),
+    "E:min", circshift(minor_chord, 4),
+    "G:7", circshift(seventh_chord, 7),
+    "G:maj", circshift(major_chord, 7),
+    "B:min", circshift(minor_chord, 11),
+    "D:7", circshift(seventh_chord, 2),
+    "D:maj", circshift(major_chord, 2),
+    "F#:min", circshift(minor_chord, 6),
+    "A:7", circshift(seventh_chord, 9),
+    "A:maj", circshift(major_chord, 9),
+    "C#:min", circshift(minor_chord, 1),
+    "E:7", circshift(seventh_chord, 4),
+    "E:maj", circshift(major_chord, 4),
+    "G#:min", circshift(minor_chord, 8),
+    "B:7", circshift(seventh_chord, 11),
+    "B:maj", circshift(major_chord, 11),
+    "D#:min", circshift(minor_chord, 3)
+  )
+
+key_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:maj", circshift(major_key, 6),
+    "Bb:min", circshift(minor_key, 10),
+    "Db:maj", circshift(major_key, 1),
+    "F:min", circshift(minor_key, 5),
+    "Ab:maj", circshift(major_key, 8),
+    "C:min", circshift(minor_key, 0),
+    "Eb:maj", circshift(major_key, 3),
+    "G:min", circshift(minor_key, 7),
+    "Bb:maj", circshift(major_key, 10),
+    "D:min", circshift(minor_key, 2),
+    "F:maj", circshift(major_key, 5),
+    "A:min", circshift(minor_key, 9),
+    "C:maj", circshift(major_key, 0),
+    "E:min", circshift(minor_key, 4),
+    "G:maj", circshift(major_key, 7),
+    "B:min", circshift(minor_key, 11),
+    "D:maj", circshift(major_key, 2),
+    "F#:min", circshift(minor_key, 6),
+    "A:maj", circshift(major_key, 9),
+    "C#:min", circshift(minor_key, 1),
+    "E:maj", circshift(major_key, 4),
+    "G#:min", circshift(minor_key, 8),
+    "B:maj", circshift(major_key, 11),
+    "D#:min", circshift(minor_key, 3)
+  )
+```
+
+### Analysis of The Chordogram of Track 1
+
+The chordogram of track 1 offers insight into the harmonic structure of the track, allowing us to verify if E major truly dominates. Interestingly, E major appears as one of the darkest regions, indicating that it is actually one of the least prevalent chords. This could suggest that the track frequently shifts between different keys, creating a dynamic and ever-changing harmonic landscape. Another possible explanation is that the presence of background noise—possibly introduced by the AI—might obscure the clarity of the chord progressions, making it harder to discern the dominant tonality. Regardless, the chordogram highlights the complexity and fluidity of the harmonic transitions within the track.
+
+### Chordogram of Track 1
+```{r}
+"features/marit-r-1.json" |> 
+  compmus_chroma(norm = "identity") |> 
+  compmus_match_pitch_templates(
+    key_templates,         # Change to chord_templates if desired
+    norm = "identity",       # Try different norms (and match it with what you used in `compmus_chroma`)
+    distance = "cosine"   # Try different distance metrics
+  ) |>
+  ggplot(aes(x = time, y = name, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = "Template", fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### Analysis of The Chordogram of Track 2
+
+In Track 2, once again, E major is notably absent, which is surprising, especially considering that the chromagrams indicated it as the dominant chord. Instead, almost every possible chord appears throughout the track, creating a vibrant and harmonically rich landscape. This could suggest that the track features a variety of instruments playing simultaneously, contributing to a sense of fullness. However, this dense layering of sounds may also result in background noise and disharmony, which is reflected in the chordogram. When listening to the track, this becomes even more apparent, as the presence of excessive noise makes it less pleasant and harder to follow, resulting in a less enjoyable listening experience.
+
+### Chordogram of Track 2
+
+```{r}
+"features/marit-r-2.json" |> 
+  compmus_chroma(norm = "identity") |> 
+  compmus_match_pitch_templates(
+    key_templates,         # Change to chord_templates if desired
+    norm = "identity",       # Try different norms (and match it with what you used in `compmus_chroma`)
+    distance = "cosine"   # Try different distance metrics
+  ) |>
+  ggplot(aes(x = time, y = name, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = "Template", fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+# Self-similarity Matrix (Chroma-based)
+
+### Analysis of Chroma-based Self-similarity Matrix of Track 1
+
+The chroma-based self-similarity matrix of Track 1 reveals a fascinating and evolving harmonic structure. In the beginning, a diagonal pattern emerges, indicating a repetitive chord progression. This suggests that the track starts with a steady and predictable harmonic foundation, where the chords follow a familiar, consistent pattern. As the track progresses, the pattern shifts to a checkerboard arrangement, signaling a transition to alternating repetition. While still built on repetition, this new structure introduces variation within the repeated sections, adding a dynamic and evolving feel to the music. This shift reflects a move from simplicity to complexity, creating a sense of progression while maintaining the underlying structural familiarity.
+
+### Chroma-based Self-similarity Matrix of Track 1
+
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_chroma(norm = "identity") |>                 # Change the norm
+  compmus_self_similarity(
+    feature = pc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### Analysis of The Chroma-based Self-similarity Matrix of Track 2
+
+The chroma-based self-similarity matrix of Track 2 reveals a clear checkerboard pattern, indicating that the track features repeated notes, but with a twist. Rather than straightforward repetition, the matrix shows an alternating repetition of notes, where the musical elements shift and evolve while maintaining their core structure. This pattern suggests a dynamic balance between familiarity and variation, creating a sense of continuity while introducing enough change to keep the music engaging and unpredictable.
+
+### Chroma-based Self-similarity Matrix of Track 2
+
+```{r}
+"features/marit-r-2.json" |>                           # Change the track
+  compmus_chroma(norm = "identity") |>                 # Change the norm
+  compmus_self_similarity(
+    feature = pc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+
+# Self-similarity Matrix (Timbre-based)
+
+### Analysis of Timbre-based Self-similarity Matrix of Track 1
+
+The Timbre-based Self-Similarity Matrix of Track 1 reveals some intriguing contrasts in timbral richness throughout the track. In the intro and especially the outro, there is a noticeable increase in timbre, indicating that these sections of the track likely feature a broader range of instruments. This enhanced timbral complexity in the beginning and end contrasts with the more homogeneous middle section, which is notably more monotonous. The overall timbre here supports the idea that the track is eentonig (monotonous) in the middle, aligning with the pattern seen in the chroma-based self-similarity matrix. This suggests that the middle portion of the track relies on fewer instrumental variations, while the intro and outro offer a more dynamic and layered sound.
+
+### Timbre-based Self-similarity Matrix of Track 1
+
+```{r}
+"features/marit-r-1.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  compmus_self_similarity(
+    feature = mfcc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
+### Analysis of Timbre-based Self-similarity Matrix of Track 2
+
+In Track 2, the Timbre-based Self-Similarity Matrix shows a slight increase in timbral complexity during the intro and outro, similar to Track 1, but this peak is far less pronounced. The track overall features minimal timbral variation, with much of the piece exhibiting a lighter, more sparse texture. This is in contrast to Track 1, where the timbre is more dynamic in the intro and outro. Interestingly, the lighter timbre of Track 2 could suggest the use of fewer instruments or a simpler arrangement, leading to a less dense overall sound compared to Track 1. However, it could also indicate a different approach to instrument layering and arrangement, resulting in a more subtle variation in timbre throughout the track.
+
+### Timbre-based Self-similarity Matrix of Track 2
+
+```{r}
+"features/marit-r-2.json" |>                           # Change the track
+  compmus_mfccs(norm = "identity") |>                  # Change the norm
+  compmus_self_similarity(
+    feature = mfcc,
+    distance = "euclidean"                             # Change the distance
+  ) |>   
+  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +               # Change the colours?
+  labs(x = "Time (s)", y = NULL, fill = NULL) +
+  theme_classic()                                      # Change the theme?
+```
+
 # Cepstogram
 
-### track 1
+### Analysis of Cepstogram Track 1
+
+There isn't much to observe in this cepstogram, but you can notice a difference in timbre between the beginning and the end of the track. The song is monotonous, resulting in few relative variations in timbre throughout. 
+
+### Cepstogram of Track 1
+
 ```{r}
 "features/marit-r-1.json" |>                           # Change the track
   compmus_mfccs(norm = "identity") |>                  # Change the norm
@@ -91,7 +398,12 @@ Links to an external site. worked well for me. To make the songs, I used various
   theme_classic()                                      # Change the theme?
 ```
 
-### track 2
+### Analysis of Cepstogram Track 
+
+The cepstogram of track 2 closely resembles that of track 1, with the difference in timbre being even less pronounced here. This could also be due to the song being AI-generated, resulting in fewer dynamic musical structures. To zoom in on the cepstogram, we use the energy-based and spectral-based novelty functions.
+
+### Cepstogram of Track 1
+
 ```{r}
 "features/marit-r-2.json" |>                           # Change the track
   compmus_mfccs(norm = "identity") |>                  # Change the norm
@@ -106,66 +418,269 @@ Links to an external site. worked well for me. To make the songs, I used various
   theme_classic()                                      # Change the theme?
 ```
 
-# Chroma-based self-similarity
 
-### track 1
+# Novelty Functions (Energy-based)
+
+### Analysis Energy-based Novelty Function of Track 1
+
+The energy-based novelty function for Track 1 shows a peak around 10 seconds, which may suggest a rise in instrumental activity at that point in the track. After this initial peak, the track shows very few significant changes in energy, indicating a lack of energetic variation throughout the rest of the piece. Additionally, since the function uses a small window, the peaks aren't particularly pronounced, further emphasizing the relatively stable energy levels within the track.
+
+### Energy-based Novelty Function of Track 1
 ```{r}
-"features/marit-r-1.json" |>                           # Change the track
-  compmus_chroma(norm = "identity") |>                 # Change the norm
-  compmus_self_similarity(
-    feature = pc,
-    distance = "euclidean"                             # Change the distance
-  ) |>   
-  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +               # Change the colours?
-  labs(x = "Time (s)", y = NULL, fill = NULL) +
-  theme_classic()                                      # Change the theme?
+"features/marit-r-1.json" |>
+  compmus_energy_novelty() |> 
+  ggplot(aes(t, novelty)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "Energy Novelty")
 ```
 
-### track 2
+
+### Analysis Energy-based Novelty Function of Track 2:
+
+In contrast, the energy-based novelty function for Track 2 displays more peaks compared to Track 1, although these peaks are much smaller due to the smaller window used. This results in fewer significant peaks overall compared to Track 1. The largest peak occurs around 90 seconds, which suggests a notable change in energy at that point. However, due to the smaller window, the energy fluctuations are less pronounced and more fragmented.
+
+### Energy-based Novelty Function of Track 1
 ```{r}
-"features/marit-r-2.json" |>                           # Change the track
-  compmus_chroma(norm = "identity") |>                 # Change the norm
-  compmus_self_similarity(
-    feature = pc,
-    distance = "euclidean"                             # Change the distance
-  ) |>   
-  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +               # Change the colours?
-  labs(x = "Time (s)", y = NULL, fill = NULL) +
-  theme_classic()                                      # Change the theme?
+"features/marit-r-2.json" |>
+  compmus_energy_novelty() |> 
+  ggplot(aes(t, novelty)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "Energy Novelty")
 ```
 
-# Timbre-based self-similarity
+# Novelty Functions (Spectral-based)
 
-### track 1
+### Analysis Spectral-based Novelty Function of Track 1
+
+The spectral-based novelty function for Track 1 reveals changes in frequency, indicating shifts in pitches and melodies throughout the track. Unlike other analyses that suggested a more monotonous structure, this function doesn't appear as consistent, possibly due to the small window used, which makes the frequency changes seem more pronounced than they actually are. This suggests that while the track might seem to have more spectral variation, it could just be a result of the narrow window, amplifying smaller shifts in pitch and melody that would otherwise go unnoticed.
+
+### Spectral-based Novelty Function of Track 1
+
 ```{r}
-"features/marit-r-1.json" |>                           # Change the track
-  compmus_mfccs(norm = "identity") |>                  # Change the norm
-  compmus_self_similarity(
-    feature = mfcc,
-    distance = "euclidean"                             # Change the distance
-  ) |>   
-  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +               # Change the colours?
-  labs(x = "Time (s)", y = NULL, fill = NULL) +
-  theme_classic()                                      # Change the theme?
+"features/marit-r-1.json" |>
+  compmus_spectral_novelty() |> 
+  ggplot(aes(t, novelty)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "Spectral Novelty")
+
 ```
 
-### track 2
+### Analysis of Spectral-based Novelty Function of Track 2
+
+Similarly, the spectral-based novelty function for Track 2 follows a pattern similar to Track 1, appearing monotonous overall. At the beginning, there are noticeable peaks, but around 120 seconds, the function shows lower valleys, indicating a drop in spectral variation. As with Track 1, the small window leads to less significant spectral changes, so while it may appear there are variations, these fluctuations are actually quite subtle and don't reflect major shifts in the overall spectral content.
+
+### Spectral-based Novelty Function of Track 2
+
 ```{r}
-"features/marit-r-2.json" |>                           # Change the track
-  compmus_mfccs(norm = "identity") |>                  # Change the norm
-  compmus_self_similarity(
-    feature = mfcc,
-    distance = "euclidean"                             # Change the distance
-  ) |>   
-  ggplot(aes(x = xtime, y = ytime, fill = d)) + 
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +               # Change the colours?
-  labs(x = "Time (s)", y = NULL, fill = NULL) +
-  theme_classic()                                      # Change the theme?
+"features/marit-r-2.json" |>
+  compmus_spectral_novelty() |> 
+  ggplot(aes(t, novelty)) +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "Spectral Novelty")
+
 ```
+
+# Tempograms
+
+### Analysis Tempogram of Track 1
+
+The tempogram for Track 1 shows a consistent pattern, which could be a result of the AI-generated nature of the track. There is a slight change around 80 seconds, but overall, the tempo remains quite steady. Interestingly, the consistency in tempo is more typical of genres like EDM, House, and Dance, which usually feature a regular beat throughout. However, this track doesn't align with those genres, making it somewhat unusual and unexpected to see such a consistent tempo pattern here.
+
+### Tempogram of Track 1
+
+```{r}
+"features/marit-r-1.json" |>
+  compmus_tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") +
+  theme_classic()
+```
+
+### Analysis of the Tempogram of Track 2
+
+The tempogram for Track 2 is even more consistent, with very little change throughout the track, suggesting an overall monotonous tempo. There are few accents or variations, making the track feel quite steady and predictable in terms of rhythm. This lack of tempo changes further emphasizes the uniformity of the track, reinforcing a sense of stability, though it might also contribute to a feeling of sameness.
+
+### Tempogram of Track 2
+
+```{r}
+"features/marit-r-2.json" |>
+  compmus_tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") +
+  theme_classic()
+```
+
+# Classification & Clustering
+
+### Heatmap Class Corpus
+```{r}
+compmus2025 <- read_csv("compmus2025 (2).csv")
+```
+
+```{r}
+cluster_juice <-
+  recipe(
+    filename ~
+      arousal +
+      danceability +
+      instrumentalness +
+      tempo +
+      valence,
+    data = compmus2025
+  ) |>
+  step_center(all_predictors()) |>
+  step_scale(all_predictors()) |> 
+  # step_range(all_predictors()) |> 
+  prep(compmus2025) |>
+  juice() |>
+  column_to_rownames("filename")
+```
+
+```{r}
+compmus_dist <- dist(cluster_juice, method = "euclidean")
+```
+
+```{r}
+compmus_dist |> 
+  hclust(method = "single") |> # Try single, average, and complete.
+  dendro_data() |>
+  ggdendrogram()
+```
+
+```{r}
+compmus_dist |> 
+  hclust(method = "average") |> # Try single, average, and complete.
+  dendro_data() |>
+  ggdendrogram()
+```
+
+```{r}
+compmus_dist |> 
+  hclust(method = "complete") |> # Try single, average, and complete.
+  dendro_data() |>
+  ggdendrogram()
+```
+
+```{r}
+heatmaply(
+  cluster_juice,
+  hclustfun = hclust,
+  hclust_method = "average",  # Change for single, average, or complete linkage.
+  dist_method = "euclidean"
+)
+```
+
+```{r}
+compmus2025_filtered <- 
+  compmus2025 |> filter(!is.na(ai)) |> 
+  mutate(ai = factor(if_else(ai, "AI", "Non-AI")))
+```
+
+```{r}
+classification_recipe <-
+  recipe(
+    ai ~
+      arousal +
+      danceability +
+      instrumentalness +
+      tempo +
+      valence,
+    data = compmus2025_filtered
+  ) |>
+  step_center(all_predictors()) |>
+  step_scale(all_predictors())      # Converts to z-scores.
+  # step_range(all_predictors())    # Sets range to [0, 1].
+```
+
+```{r}
+compmus_cv <- compmus2025_filtered |> vfold_cv(5)
+```
+
+```{r}
+knn_model <-
+  nearest_neighbor(neighbors = 1) |>
+  set_mode("classification") |> 
+  set_engine("kknn")
+classification_knn <- 
+  workflow() |> 
+  add_recipe(classification_recipe) |> 
+  add_model(knn_model) |> 
+  fit_resamples(compmus_cv, control = control_resamples(save_pred = TRUE))
+```
+
+```{r}
+classification_knn |> get_conf_mat()
+```
+
+```{r}
+classification_knn |> get_conf_mat() |> autoplot(type = "mosaic")
+```
+
+```{r}
+classification_knn |> get_conf_mat() |> autoplot(type = "heatmap")
+```
+
+```{r}
+forest_model <-
+  rand_forest() |>
+  set_mode("classification") |> 
+  set_engine("ranger", importance = "impurity")
+indie_forest <- 
+  workflow() |> 
+  add_recipe(classification_recipe) |> 
+  add_model(forest_model) |> 
+  fit_resamples(
+    compmus_cv, 
+    control = control_resamples(save_pred = TRUE)
+  )
+```
+
+```{r}
+indie_forest |> get_pr()
+```
+
+```{r}
+workflow() |> 
+  add_recipe(classification_recipe) |> 
+  add_model(forest_model) |> 
+  fit(compmus2025_filtered) |> 
+  pluck("fit", "fit", "fit") |>
+  ranger::importance() |> 
+  enframe() |> 
+  mutate(name = fct_reorder(name, value)) |> 
+  ggplot(aes(name, value)) + 
+  geom_col() + 
+  coord_flip() +
+  theme_minimal() +
+  labs(x = NULL, y = "Importance")
+```
+
+```{r}
+compmus2025_filtered |>
+  ggplot(aes(x = valence, y = arousal, colour = ai, size = tempo)) +
+  geom_point(alpha = 0.8) +
+  scale_color_viridis_d() +
+  labs(
+    x = "Valence",
+    y = "Arousal",
+    size = "Tempo",
+    colour = "AI"
+  )
+```
+
+
+# Conclusion
+
+From the various analyses, it's clear that Track 1 and Track 2 exhibit distinct differences in dynamics and musical complexity. Track 1 displays a relatively dynamic and evolving structure. The chroma-based self-similarity matrix reveals a steady chord progression at the start, with alternating repetition towards the middle, indicating some level of variation. The energy-based novelty function shows a peak early on, followed by minimal changes, suggesting a burst of activity at the beginning and stability later. Furthermore, the spectral-based novelty function indicates frequent changes in pitch and melody, especially in the intro and outro, hinting at a more instrumentally rich arrangement. However, the tempogram presents a consistent pattern, likely influenced by the AI generation, which creates a steady rhythm more common in genres like EDM and House.
+
+In contrast, Track 2 presents a more monotonous and static dynamic throughout. The chroma-based self-similarity matrix shows a highly repetitive harmonic structure without much tonal variation. The energy-based novelty function reveals some small peaks and a noticeable burst around 90 seconds, but overall, the track remains fairly stable. The spectral-based novelty function indicates minimal spectral variation, with small fluctuations, contributing to a more uniform texture. The tempogram for Track 2 is even more consistent than Track 1, with very few changes in tempo, reinforcing its monotony.
+
+Overall, while Track 1 features some dynamic shifts and contrasts in both timbre and tempo, Track 2 remains far more uniform and stable throughout. The overall dynamics of Track 1 suggest more musical complexity and variation, whereas Track 2 presents a more steady and predictable experience, with fewer changes in energy, pitch, and rhythm.
